@@ -10,4 +10,4 @@ git pull
 docker-compose -f docker-compose-prod.yml pull
 
 # run
-docker-compose -f ./docker-compose-dev.yml run app ruby src/main.rb
+docker-compose -f docker-compose-prod.yml run app ruby /app/src/main.rb
