@@ -1,5 +1,5 @@
 {
-	"name": "crawle",
-	"script": "echo 'Hello World '`date`",
-	"schedule": "*/2 * * * * *"
+	"name": "crawle2",
+	"script": "./scripts/crawle.sh",
+	"schedule": "0 27 11 * * *"
 }
