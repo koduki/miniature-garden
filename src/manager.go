@@ -4,6 +4,7 @@ import (
     "encoding/json"
     "fmt"
     "os"
+    "time"
     "os/exec"
     "bufio"
     "regexp"
@@ -64,25 +65,28 @@ func readJobs(dirname string)([]Job) {
    return jobs
 }
 
-func addJobs(c *cron.Cron, jobs []Job) {
-   for _, job := range jobs {
+func addJobs(jobs []Job) {
+   c := cron.New()
+   for _, j := range jobs {
+      job := j
       c.AddFunc(job.Schedule, func(){ executeJob(job) })
-      fmt.Println("EVENT:JOB-REGIST\tJOB-NAME:" + job.Name)
+      fmt.Println("EVENT:JOB-REGIST\tJOB-NAME:" + job.Name )
    }
+   c.Start()
 }
 
 func executeJob(job Job) {
     path := "logs/" + job.Name + ".log"
 
-    writeLog(path, "EVENT:JOB-START\tJOB-NAME:" + job.Name + "\n")
-    out, err := exec.Command("sh", "-c", job.Script).Output()
-    if err != nil {
-	fmt.Println(err)
-	os.Exit(1)
-    }
+    writeLogln(path, "EVENT:JOB-START\tJOB-NAME:" + job.Name)
+    fmt.Println(job.Script)
+
+    log.Info("Name: ", job.Name, " Script: ", job.Script)
+
+    out, _ := exec.Command("sh", "-xc", job.Script).Output()
 
     writeLog(path, string(out))
-    writeLog(path, "EVENT:JOB-END\tJOB-NAME:" + job.Name + "\n")
+    writeLogln(path, "EVENT:JOB-END\tJOB-NAME:" + job.Name)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +106,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func renderJobs(w http.ResponseWriter, r *http.Request)(string) {
     var html string
     jobs := readJobs("jobs")
-
 
     html += "<h1>Miniature Garden</h1>"
     html += "<h2>Job List</h2>"
@@ -144,6 +147,12 @@ func writeLog(path string, message string) {
     writer.Flush()
 }
 
+func writeLogln(path string, message string) {
+    t := time.Now()
+    writeLog(path, message + "\tTIMESTAMP:" + t.Format("2006-01-02 15:04:05") + "\n")
+}
+
+
 func handler2(w http.ResponseWriter, r *http.Request) {
     path := r.URL.Path
 
@@ -169,10 +178,8 @@ func handler2(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-    c := cron.New()
     jobs := readJobs("jobs")
-    addJobs(c, jobs)
-    c.Start()
+    addJobs(jobs)
 
     http.HandleFunc("/", handler2)
     fmt.Println("Run server, http://localhost:9090/")
